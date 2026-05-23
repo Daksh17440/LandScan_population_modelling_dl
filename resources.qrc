@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/population_model" >
+        <file>icon.svg</file>
+    </qresource>
+</RCC>

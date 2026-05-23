@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>population_modelDialogBase</class>
+ <widget class="QDialog" name="population_modelDialogBase">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>462</width><height>417</height></rect>
+  </property>
+  <property name="windowTitle">
+   <string>LandScan Population Modelling</string>
+  </property>
+
+  <!--
+    Page indices (stacked widget order):
+      0  – Mode selector          (shared entry point)
+      1  – ROI                    (shared)
+      2  – Model selection        (Train & Run only)
+      3  – Weights upload         (Run Existing only)  ← NEW dedicated page
+      4  – Hyperparameters        (shared; auto-filled + locked in Run Existing)
+      5  – Loss function          (Train & Run only)
+      6  – Time frame             (Run Existing only)  ← split out from old page 5
+      7  – Output directory       (shared)
+
+    Run Existing flow : 0 → 1 → 3 → 4 → 6 → 7
+    Train & Run flow  : 0 → 1 → 2 → 4 → 5 → 7
+  -->
+
+  <widget class="QStackedWidget" name="stackedWidget">
+   <property name="geometry">
+    <rect><x>10</x><y>20</y><width>441</width><height>321</height></rect>
+   </property>
+   <property name="currentIndex"><number>0</number></property>
+
+   <!-- ═══ PAGE 0 – Mode selector ═══════════════════════════════════════ -->
+   <widget class="QWidget" name="page_mode">
+    <widget class="QLabel" name="lbl_mode_title">
+     <property name="geometry"><rect><x>10</x><y>10</y><width>421</width><height>20</height></rect></property>
+     <property name="text"><string>Select Application:</string></property>
+     <property name="font"><font><bold>true</bold></font></property>
+    </widget>
+    <widget class="QGroupBox" name="grp_mode">
+     <property name="geometry"><rect><x>10</x><y>40</y><width>421</width><height>130</height></rect></property>
+     <property name="title"><string>APPLICATION MODE</string></property>
+     <widget class="QRadioButton" name="radio_run_existing">
+      <property name="geometry"><rect><x>20</x><y>30</y><width>381</width><height>28</height></rect></property>
+      <property name="text"><string>Run Existing Model  (load pre-trained weights)</string></property>
+     </widget>
+     <widget class="QLabel" name="lbl_run_existing_desc">
+      <property name="geometry"><rect><x>42</x><y>55</y><width>371</width><height>16</height></rect></property>
+      <property name="text"><string>Steps: ROI → Weights → Hyperparameters → Time Frame → Output</string></property>
+      <property name="styleSheet"><string>color: gray; font-style: italic;</string></property>
+     </widget>
+     <widget class="QRadioButton" name="radio_train_run">
+      <property name="geometry"><rect><x>20</x><y>80</y><width>381</width><height>28</height></rect></property>
+      <property name="text"><string>Train and Run New Model  (train from scratch)</string></property>
+     </widget>
+     <widget class="QLabel" name="lbl_train_run_desc">
+      <property name="geometry"><rect><x>42</x><y>105</y><width>371</width><height>16</height></rect></property>
+      <property name="text"><string>Steps: ROI → Model → Hyperparameters → Loss Function → Output</string></property>
+      <property name="styleSheet"><string>color: gray; font-style: italic;</string></property>
+     </widget>
+    </widget>
+   </widget>
+
+   <!-- ═══ PAGE 1 – ROI (shared) ══════════════════════════════════════ -->
+   <widget class="QWidget" name="page_roi">
+    <widget class="QLabel" name="label">
+     <property name="geometry"><rect><x>10</x><y>0</y><width>221</width><height>16</height></rect></property>
+     <property name="text"><string>Step 1: Select Region of Interest:</string></property>
+    </widget>
+    <widget class="QRadioButton" name="radio_nominatim">
+     <property name="geometry"><rect><x>10</x><y>20</y><width>80</width><height>18</height></rect></property>
+     <property name="text"><string>Nominatim</string></property>
+    </widget>
+    <widget class="QWidget" name="horizontalLayoutWidget_2">
+     <property name="geometry"><rect><x>20</x><y>40</y><width>411</width><height>31</height></rect></property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item><widget class="QLineEdit" name="input_search"/></item>
+      <item><widget class="QPushButton" name="btn_search"><property name="text"><string>Search</string></property></widget></item>
+     </layout>
+    </widget>
+    <widget class="QComboBox" name="combo_suggestions">
+     <property name="geometry"><rect><x>20</x><y>80</y><width>411</width><height>22</height></rect></property>
+    </widget>
+    <widget class="QRadioButton" name="radio_bbox">
+     <property name="geometry"><rect><x>10</x><y>110</y><width>211</width><height>18</height></rect></property>
+     <property name="text"><string>Bounding box (lat1, lon1, lat2, lon2)</string></property>
+    </widget>
+    <widget class="QWidget" name="gridLayoutWidget">
+     <property name="geometry"><rect><x>20</x><y>140</y><width>411</width><height>96</height></rect></property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0"><widget class="QLabel" name="label_2"><property name="text"><string>minimum latitude</string></property></widget></item>
+      <item row="0" column="1"><widget class="QDoubleSpinBox" name="box_min_y"/></item>
+      <item row="1" column="0"><widget class="QLabel" name="label_3"><property name="text"><string>minimum longitude</string></property></widget></item>
+      <item row="1" column="1"><widget class="QDoubleSpinBox" name="box_min_x"/></item>
+      <item row="2" column="0"><widget class="QLabel" name="label_4"><property name="text"><string>maximum latitude</string></property></widget></item>
+      <item row="2" column="1"><widget class="QDoubleSpinBox" name="box_max_y"/></item>
+      <item row="3" column="0"><widget class="QLabel" name="label_5"><property name="text"><string>maximum longitude</string></property></widget></item>
+      <item row="3" column="1"><widget class="QDoubleSpinBox" name="box_max_x"/></item>
+     </layout>
+    </widget>
+    <widget class="QRadioButton" name="radio_upload">
+     <property name="geometry"><rect><x>10</x><y>250</y><width>141</width><height>18</height></rect></property>
+     <property name="text"><string>Shapefile (.geojson/.shp)</string></property>
+    </widget>
+    <widget class="QgsFileWidget" name="frame">
+     <property name="geometry"><rect><x>20</x><y>280</y><width>411</width><height>21</height></rect></property>
+     <property name="filter" stdset="0"><string>Vector Files (*.shp *.geojson *.gpkg)</string></property>
+    </widget>
+   </widget>
+
+   <!-- ═══ PAGE 2 – Model Selection (Train & Run only) ════════════════ -->
+   <widget class="QWidget" name="page_model">
+    <widget class="QLabel" name="label_6">
+     <property name="geometry"><rect><x>10</x><y>0</y><width>221</width><height>16</height></rect></property>
+     <property name="text"><string>Step 2: Model Selection:</string></property>
+    </widget>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="geometry"><rect><x>10</x><y>20</y><width>421</width><height>61</height></rect></property>
+     <property name="title"><string>MODEL SELECTION:</string></property>
+     <widget class="QComboBox" name="combo_model">
+      <property name="geometry"><rect><x>20</x><y>20</y><width>201</width><height>22</height></rect></property>
+      <item><property name="text"><string>ConvLSTM</string></property></item>
+      <item><property name="text"><string>Vision Transformers (ViT)</string></property></item>
+     </widget>
+    </widget>
+   </widget>
+
+   <!-- ═══ PAGE 3 – Weights Upload (Run Existing only) ════════════════ -->
+   <widget class="QWidget" name="page_weights">
+    <widget class="QLabel" name="lbl_weights_step">
+     <property name="geometry"><rect><x>10</x><y>0</y><width>421</width><height>16</height></rect></property>
+     <property name="text"><string>Step 2: Pre-Trained Model Weights:</string></property>
+    </widget>
+    <widget class="QGroupBox" name="grp_weights">
+     <property name="geometry"><rect><x>10</x><y>25</y><width>421</width><height>111</height></rect></property>
+     <property name="title"><string>WEIGHTS FILE:</string></property>
+     <widget class="QLabel" name="lbl_weights_hint">
+      <property name="geometry"><rect><x>10</x><y>22</y><width>401</width><height>32</height></rect></property>
+      <property name="text"><string>Select the .pth weights file produced by a previous LandScan training run.
+Architecture and hyperparameters will be read automatically from the file.</string></property>
+      <property name="wordWrap"><bool>true</bool></property>
+     </widget>
+     <widget class="QgsFileWidget" name="file_weights">
+      <property name="geometry"><rect><x>10</x><y>72</y><width>401</width><height>27</height></rect></property>
+      <property name="filter" stdset="0"><string>PyTorch Weights (*.pth *.pt)</string></property>
+     </widget>
+    </widget>
+
+    <!-- Read-back panel: populated by Python after parsing checkpoint -->
+    <widget class="QGroupBox" name="grp_weights_info">
+     <property name="geometry"><rect><x>10</x><y>148</y><width>421</width><height>111</height></rect></property>
+     <property name="title"><string>DETECTED CONFIGURATION (read from file):</string></property>
+     <widget class="QLabel" name="lbl_detected_arch">
+      <property name="geometry"><rect><x>10</x><y>22</y><width>401</width><height>16</height></rect></property>
+      <property name="text"><string>Architecture:  —</string></property>
+     </widget>
+     <widget class="QLabel" name="lbl_detected_patch">
+      <property name="geometry"><rect><x>10</x><y>44</y><width>401</width><height>16</height></rect></property>
+      <property name="text"><string>Patch size:  —     Stride:  —     Batch size:  —</string></property>
+     </widget>
+     <widget class="QLabel" name="lbl_detected_time">
+      <property name="geometry"><rect><x>10</x><y>66</y><width>401</width><height>16</height></rect></property>
+      <property name="text"><string>Timesteps:  —     Epochs trained:  —</string></property>
+     </widget>
+     <widget class="QLabel" name="lbl_detected_status">
+      <property name="geometry"><rect><x>10</x><y>88</y><width>401</width><height>16</height></rect></property>
+      <property name="text"><string></string></property>
+      <property name="styleSheet"><string>color: gray; font-style: italic;</string></property>
+     </widget>
+    </widget>
+   </widget>
+
+   <!-- ═══ PAGE 4 – Hyperparameters (shared) ══════════════════════════ -->
+   <widget class="QWidget" name="page_hyperparam">
+    <widget class="QLabel" name="lbl_hyperparam_step">
+     <property name="geometry"><rect><x>10</x><y>0</y><width>421</width><height>16</height></rect></property>
+     <property name="text"><string>Step 3: Hyperparameters:</string></property>
+    </widget>
+
+    <!-- Warning banner: visible only in Run Existing mode (shown/hidden by Python) -->
+    <widget class="QFrame" name="frame_hyperparam_warning">
+     <property name="geometry"><rect><x>10</x><y>20</y><width>421</width><height>36</height></rect></property>
+     <property name="frameShape"><enum>QFrame::StyledPanel</enum></property>
+     <property name="styleSheet"><string>QFrame { background-color: #fff8e1; border: 1px solid #f9a825; border-radius: 4px; }</string></property>
+     <widget class="QLabel" name="lbl_hyperparam_warning">
+      <property name="geometry"><rect><x>8</x><y>4</y><width>405</width><height>28</height></rect></property>
+      <property name="text"><string>⚠  Values loaded from weights file. Changing them may cause inference errors.</string></property>
+      <property name="wordWrap"><bool>true</bool></property>
+      <property name="styleSheet"><string>color: #5d4037; font-style: italic; border: none;</string></property>
+     </widget>
+    </widget>
+
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="geometry"><rect><x>10</x><y>62</y><width>421</width><height>251</height></rect></property>
+     <property name="title"><string>HYPERPARAMETERS:</string></property>
+     <widget class="QWidget" name="formLayoutWidget">
+      <property name="geometry"><rect><x>10</x><y>20</y><width>401</width><height>221</height></rect></property>
+      <layout class="QFormLayout" name="formLayout">
+       <item row="0" column="0"><widget class="QLabel" name="label_7"><property name="text"><string>Patch Size:</string></property></widget></item>
+       <item row="0" column="1"><widget class="QSpinBox" name="spin_patch_size"><property name="maximum"><number>512</number></property><property name="value"><number>64</number></property></widget></item>
+       <item row="1" column="0"><widget class="QLabel" name="label_8"><property name="text"><string>Stride (Overlap):</string></property></widget></item>
+       <item row="1" column="1"><widget class="QSpinBox" name="spin_stride"><property name="maximum"><number>512</number></property><property name="value"><number>32</number></property></widget></item>
+       <item row="2" column="0"><widget class="QLabel" name="label_9"><property name="text"><string>Batch Size:</string></property></widget></item>
+       <item row="2" column="1"><widget class="QSpinBox" name="spin_batch_size"><property name="maximum"><number>128</number></property><property name="value"><number>8</number></property></widget></item>
+       <item row="3" column="0"><widget class="QLabel" name="label_10"><property name="text"><string>Timesteps:</string></property></widget></item>
+       <item row="3" column="1"><widget class="QSpinBox" name="spin_timesteps"><property name="maximum"><number>20</number></property><property name="value"><number>4</number></property></widget></item>
+       <item row="4" column="0"><widget class="QLabel" name="label_11"><property name="text"><string>Training Epochs:</string></property></widget></item>
+       <item row="4" column="1"><widget class="QSpinBox" name="spin_epochs"><property name="maximum"><number>1000</number></property><property name="value"><number>10</number></property></widget></item>
+      </layout>
+     </widget>
+    </widget>
+   </widget>
+
+   <!-- ═══ PAGE 5 – Loss Function (Train & Run only) ══════════════════ -->
+   <widget class="QWidget" name="page_loss">
+    <widget class="QLabel" name="label_13">
+     <property name="geometry"><rect><x>10</x><y>0</y><width>371</width><height>16</height></rect></property>
+     <property name="text"><string>Step 4: Loss Metric Weighting:</string></property>
+    </widget>
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="geometry"><rect><x>10</x><y>20</y><width>421</width><height>291</height></rect></property>
+     <property name="title"><string>LOSS FUNCTION:</string></property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="0"><widget class="QCheckBox" name="check_mse"><property name="text"><string>Mean Squared Error (MSE)</string></property></widget></item>
+      <item row="0" column="1"><widget class="QSpinBox" name="spin_mse_weight"><property name="maximum"><number>100</number></property><property name="value"><number>100</number></property></widget></item>
+      <item row="1" column="0"><widget class="QCheckBox" name="check_mae"><property name="text"><string>Mean Absolute Error (MAE)</string></property></widget></item>
+      <item row="1" column="1"><widget class="QSpinBox" name="spin_mae_weight"><property name="maximum"><number>100</number></property></widget></item>
+      <item row="2" column="0"><widget class="QCheckBox" name="check_ssim"><property name="text"><string>Structural Similarity Index Measure (SSIM)</string></property></widget></item>
+      <item row="2" column="1"><widget class="QSpinBox" name="spin_ssim_weight"><property name="maximum"><number>100</number></property></widget></item>
+      <item row="3" column="0"><widget class="QCheckBox" name="check_rmse"><property name="text"><string>Root Mean Squared Error (RMSE)</string></property></widget></item>
+      <item row="3" column="1"><widget class="QSpinBox" name="spin_rmse_weight"><property name="maximum"><number>100</number></property></widget></item>
+      <item row="4" column="0"><widget class="QCheckBox" name="check_logcosh"><property name="text"><string>Log-Cosh Loss</string></property></widget></item>
+      <item row="4" column="1"><widget class="QSpinBox" name="spin_logcosh_weight"><property name="maximum"><number>100</number></property></widget></item>
+      <item row="5" column="0"><widget class="QCheckBox" name="check_tpe"><property name="text"><string>Total Population Error (TPE)</string></property></widget></item>
+      <item row="5" column="1"><widget class="QSpinBox" name="spin_tpe_weight"><property name="maximum"><number>100</number></property></widget></item>
+      <item row="6" column="0"><widget class="QCheckBox" name="check_psnr"><property name="text"><string>Peak Signal-to-Noise Ratio (PSNR)</string></property></widget></item>
+      <item row="6" column="1"><widget class="QSpinBox" name="spin_psnr_weight"><property name="maximum"><number>100</number></property></widget></item>
+      <item row="7" column="0"><widget class="QCheckBox" name="check_smape"><property name="text"><string>Symmetric Mean Absolute Percentage Error (sMAPE)</string></property></widget></item>
+      <item row="7" column="1"><widget class="QSpinBox" name="spin_smape_weight"><property name="maximum"><number>100</number></property></widget></item>
+      <item row="8" column="0"><widget class="QCheckBox" name="check_emd"><property name="text"><string>Earth Mover's Distance (EMD)</string></property></widget></item>
+      <item row="8" column="1"><widget class="QSpinBox" name="spin_emd_weight"><property name="maximum"><number>100</number></property></widget></item>
+     </layout>
+    </widget>
+   </widget>
+
+   <!-- ═══ PAGE 6 – Time Frame (Run Existing only) ═════════════════════ -->
+   <widget class="QWidget" name="page_timeframe">
+    <widget class="QLabel" name="lbl_timeframe_step">
+     <property name="geometry"><rect><x>10</x><y>0</y><width>421</width><height>16</height></rect></property>
+     <property name="text"><string>Step 4: Time Frame:</string></property>
+    </widget>
+    <widget class="QGroupBox" name="grp_timeframe">
+     <property name="geometry"><rect><x>10</x><y>25</y><width>421</width><height>101</height></rect></property>
+     <property name="title"><string>TIME FRAME:</string></property>
+     <widget class="QWidget" name="formLayoutWidget_tf">
+      <property name="geometry"><rect><x>10</x><y>20</y><width>401</width><height>71</height></rect></property>
+      <layout class="QFormLayout" name="formLayout_tf">
+       <item row="0" column="0"><widget class="QLabel" name="label_tf_start"><property name="text"><string>Start Year:</string></property></widget></item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="spin_start_year">
+         <property name="minimum"><number>2000</number></property>
+         <property name="maximum"><number>2022</number></property>
+         <property name="value"><number>2017</number></property>
+        </widget>
+       </item>
+       <item row="1" column="0"><widget class="QLabel" name="label_tf_end"><property name="text"><string>End Year (included):</string></property></widget></item>
+       <item row="1" column="1">
+        <widget class="QSpinBox" name="spin_end_year">
+         <property name="minimum"><number>2001</number></property>
+         <property name="maximum"><number>2023</number></property>
+         <property name="value"><number>2022</number></property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QLabel" name="lbl_timeframe_note">
+     <property name="geometry"><rect><x>10</x><y>140</y><width>421</width><height>32</height></rect></property>
+     <property name="text"><string>Note: the number of historical years used as model input must match the Timesteps value saved in the weights file.</string></property>
+     <property name="wordWrap"><bool>true</bool></property>
+     <property name="styleSheet"><string>color: gray; font-style: italic;</string></property>
+    </widget>
+   </widget>
+
+   <!-- ═══ PAGE 7 – Output Directory (shared) ══════════════════════════ -->
+   <widget class="QWidget" name="page_output">
+    <widget class="QLabel" name="lbl_output_step">
+     <property name="geometry"><rect><x>10</x><y>0</y><width>371</width><height>16</height></rect></property>
+     <property name="text"><string>Step 5: Output Directory Setup:</string></property>
+    </widget>
+    <widget class="QLabel" name="lbl_output_hint">
+     <property name="geometry"><rect><x>10</x><y>22</y><width>421</width><height>16</height></rect></property>
+     <property name="text"><string>All output rasters (and weights for training runs) will be saved here:</string></property>
+    </widget>
+    <widget class="QgsFileWidget" name="dir_output">
+     <property name="geometry"><rect><x>20</x><y>50</y><width>411</width><height>27</height></rect></property>
+     <property name="storageMode"><enum>QgsFileWidget::GetDirectory</enum></property>
+    </widget>
+   </widget>
+
+  </widget><!-- end stackedWidget -->
+
+  <!-- ═══ Navigation buttons ══════════════════════════════════════════════ -->
+  <widget class="QWidget" name="horizontalLayoutWidget">
+   <property name="geometry"><rect><x>10</x><y>360</y><width>451</width><height>51</height></rect></property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item><widget class="QPushButton" name="btn_back"><property name="text"><string>&lt; BACK</string></property></widget></item>
+    <item><widget class="QPushButton" name="btn_next"><property name="text"><string>NEXT &gt;</string></property></widget></item>
+    <item><widget class="QPushButton" name="btn_run"><property name="enabled"><bool>false</bool></property><property name="text"><string>RUN PROJECTION</string></property></widget></item>
+   </layout>
+  </widget>
+
+ </widget><!-- end QDialog -->
+
+ <customwidgets>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QFrame</extends>
+   <header>qgis.gui</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
