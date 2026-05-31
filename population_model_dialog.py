@@ -4,7 +4,22 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-import numpy as np
+# Guard against numpy 2.x / numpy.core removal conflict with QGIS's bundled numpy.
+try:
+    import numpy as np
+    # Trigger the submodule that commonly fails on version mismatch
+    import numpy.core.multiarray  # noqa: F401
+except (ImportError, AttributeError) as _np_err:
+    raise ImportError(
+        "numpy could not be imported correctly. This is almost always caused by a "
+        "version conflict: a newer numpy (2.x) was pip-installed alongside QGIS's "
+        "bundled numpy (1.x), and numpy.core was removed in 2.0.\n\n"
+        "Fix — open the OSGeo4W Shell and run:\n"
+        '    python -m pip install "numpy<2.0" --force-reinstall\n'
+        "Then restart QGIS.\n\n"
+        f"Original error: {_np_err}"
+    ) from _np_err
+
 import requests
 
 from qgis.PyQt import uic, QtWidgets
@@ -31,22 +46,22 @@ PAGE_WEIGHTS = 3   # Weights upload                (Run Existing only)
 # Hyperparameters               (shared; locked in Run Existing)
 PAGE_HYPERPARAM = 4
 PAGE_LOSS = 5   # Loss function                 (Train & Run only)
-PAGE_TIMEFRAME = 6   # Time frame                    (Run Existing only)
+PAGE_TIMEFRAME = 6   # Time frame                    (shared)
 PAGE_OUTPUT = 7   # Output directory              (shared)
 
 # Ordered page sequences for each mode
 FLOW_TRAIN_RUN = [PAGE_MODE, PAGE_ROI, PAGE_MODEL,
-                  PAGE_HYPERPARAM, PAGE_LOSS,      PAGE_OUTPUT]
+                  PAGE_HYPERPARAM, PAGE_LOSS, PAGE_TIMEFRAME, PAGE_OUTPUT]
 FLOW_RUN_EXISTING = [PAGE_MODE, PAGE_ROI, PAGE_WEIGHTS,
                      PAGE_HYPERPARAM, PAGE_TIMEFRAME, PAGE_OUTPUT]
 
 # Default hyperparameter values (single source of truth)
 HYPERPARAM_DEFAULTS = {
     "patch_size": 64,
-    "stride":     32,
+    "stride": 32,
     "batch_size": 8,
-    "timesteps":  4,
-    "epochs":     10,
+    "timesteps": 4,
+    "epochs": 10,
 }
 
 
@@ -71,8 +86,8 @@ def _save_checkpoint(model, hyperparams: dict, architecture: str, path: str) -> 
     torch.save(
         {
             "architecture": architecture,
-            "hyperparams":  hyperparams,
-            "state_dict":   model.state_dict(),
+            "hyperparams": hyperparams,
+            "state_dict": model.state_dict(),
         },
         path,
     )
@@ -193,7 +208,7 @@ class ProjectionWorker(QThread):
             if self.out_gt is None:
                 self.out_gt = (
                     gt[0] + col_min * gt[1], gt[1], 0,
-                    gt[3] + row_min * gt[5], 0,     gt[5],
+                    gt[3] + row_min * gt[5], 0, gt[5],
                 )
 
             if yr <= end_yr:
@@ -212,21 +227,38 @@ class ProjectionWorker(QThread):
         self.progress.emit("Historical data extracted successfully.")
         return {
             "population": np.stack(pop_slices, axis=0),
-            "years":      np.array(range(start_yr, end_yr + 1)),
+            "years": np.array(range(start_yr, end_yr + 1)),
         }
 
     # ── model dispatch ───────────────────────────────────────────────────────
 
     def _run_model(self, data: dict) -> dict:
+        # ── numpy sanity check ────────────────────────────────────────────────
+        # numpy.core was removed in numpy 2.0. If QGIS's bundled gdal/osgeo
+        # pulled in numpy 1.x but pip later installed numpy 2.x (or vice-versa),
+        # this import will fail with a cryptic C-extension error.
         try:
-            import torch
+            import numpy.core.multiarray  # noqa: F401
+        except (ImportError, AttributeError):
+            raise RuntimeError(
+                "numpy.core.multiarray failed to import.\n\n"
+                "This is caused by a numpy version conflict between QGIS's "
+                "bundled numpy and a newer version installed via pip.\n\n"
+                "Fix — open the OSGeo4W Shell and run:\n"
+                '    python -m pip install "numpy<2.0" --force-reinstall\n\n'
+                "Then restart QGIS and try again."
+            )
+
+        # ── torch check ───────────────────────────────────────────────────────
+        try:
+            import torch  # noqa: F401
         except ImportError:
             raise RuntimeError(
                 "This model requires PyTorch, which is not installed.\n\n"
                 "Because PyTorch is a very large Deep Learning library (~2.5 GB), "
                 "it must be installed manually.\n\n"
                 "Please open the OSGeo4W Shell and run:\n"
-                "python -m pip install torch torchvision "
+                "    python -m pip install torch torchvision "
                 "--index-url https://download.pytorch.org/whl/cpu"
             )
 
@@ -264,9 +296,9 @@ class ProjectionWorker(QThread):
 
         return {
             "historical": self.historical_paths,
-            "actual":     self.actual_path,
-            "projected":  proj_path,
-            "weights":    weights_saved,
+            "actual": self.actual_path,
+            "projected": proj_path,
+            "weights": weights_saved,
         }
 
     # ── model stubs ──────────────────────────────────────────────────────────
@@ -275,7 +307,7 @@ class ProjectionWorker(QThread):
         """Load checkpoint and run inference using the embedded architecture."""
         self.progress.emit(
             f"Loading {architecture} weights from: {weights_path}")
-        ckpt = _load_checkpoint(weights_path)
+        _load_checkpoint(weights_path)
         # TODO: instantiate model from ckpt["architecture"] + ckpt["hyperparams"],
         #       call model.load_state_dict(ckpt["state_dict"]), then run forward pass.
         self.progress.emit(f"Running {architecture} inference…")
@@ -286,10 +318,10 @@ class ProjectionWorker(QThread):
         """Train ConvLSTM and return (model, prediction_array)."""
         self.progress.emit("ConvLSTM training + inference running…")
         # TODO: real ConvLSTM training logic here
-        # return trained_model, pred_arr
 
         class _DummyModel:
-            def state_dict(self): return {}
+            def state_dict(self):
+                return {}
         return _DummyModel(), data["population"][-1]
 
     def _run_vit(self, data: dict):
@@ -298,7 +330,8 @@ class ProjectionWorker(QThread):
         # TODO: real ViT training logic here
 
         class _DummyModel:
-            def state_dict(self): return {}
+            def state_dict(self):
+                return {}
         return _DummyModel(), data["population"][-1]
 
 
@@ -325,7 +358,7 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
     Wizard-style dialog with two independent page flows:
 
       Run Existing  → Mode → ROI → Weights → Hyperparams (locked) → Time Frame → Output
-      Train & Run   → Mode → ROI → Model   → Hyperparams (free)   → Loss       → Output
+      Train & Run   → Mode → ROI → Model   → Hyperparams (free)   → Loss → Time Frame → Output
 
     When the user lands on PAGE_WEIGHTS and picks a file, the checkpoint is
     parsed immediately and its hyperparameters are written into the spinboxes
@@ -338,12 +371,12 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.iface = iface
 
-        self._worker:      Optional[ProjectionWorker] = None
+        self._worker: Optional[ProjectionWorker] = None
         self._nom_results: list = []
         # parsed when weights file is chosen
-        self._checkpoint:  Optional[dict] = None
+        self._checkpoint: Optional[dict] = None
 
-        self._flow:     list[int] = FLOW_TRAIN_RUN
+        self._flow: list[int] = FLOW_TRAIN_RUN
         self._flow_pos: int = 0
 
         self._setup_pages()
@@ -362,7 +395,7 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
         self.dir_output.setFilePath(downloads_path)
 
         for sb in (self.box_min_y, self.box_max_y):
-            sb.setRange(-90.0,  90.0)
+            sb.setRange(-90.0, 90.0)
             sb.setDecimals(6)
         for sb in (self.box_min_x, self.box_max_x):
             sb.setRange(-180.0, 180.0)
@@ -463,13 +496,14 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
             self.spin_patch_size.setValue(
                 hp.get("patch_size", HYPERPARAM_DEFAULTS["patch_size"]))
             self.spin_stride.setValue(
-                hp.get("stride",     HYPERPARAM_DEFAULTS["stride"]))
+                hp.get("stride", HYPERPARAM_DEFAULTS["stride"]))
             self.spin_batch_size.setValue(
                 hp.get("batch_size", HYPERPARAM_DEFAULTS["batch_size"]))
             self.spin_timesteps.setValue(
-                hp.get("timesteps",  HYPERPARAM_DEFAULTS["timesteps"]))
+                hp.get("timesteps", HYPERPARAM_DEFAULTS["timesteps"]))
             self.spin_epochs.setValue(
-                hp.get("epochs",     HYPERPARAM_DEFAULTS["epochs"]))
+                hp.get("epochs", HYPERPARAM_DEFAULTS["epochs"]))
+            self._set_hyperparam_locked(True)
             self.frame_hyperparam_warning.setVisible(True)
         else:
             # Train & Run or no checkpoint yet: editable defaults
@@ -478,7 +512,15 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
             self.spin_batch_size.setValue(HYPERPARAM_DEFAULTS["batch_size"])
             self.spin_timesteps.setValue(HYPERPARAM_DEFAULTS["timesteps"])
             self.spin_epochs.setValue(HYPERPARAM_DEFAULTS["epochs"])
+            self._set_hyperparam_locked(False)
             self.frame_hyperparam_warning.setVisible(False)
+
+    def _set_hyperparam_locked(self, locked: bool):
+        """Enable or disable all hyperparameter spinboxes."""
+        for spin in (self.spin_patch_size, self.spin_stride,
+                     self.spin_batch_size, self.spin_timesteps,
+                     self.spin_epochs):
+            spin.setEnabled(not locked)
 
     # ── weights file handling ────────────────────────────────────────────────
 
@@ -491,7 +533,7 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
             return
 
         try:
-            import torch
+            __import__("torch")
         except ImportError:
             self.lbl_detected_status.setText(
                 "⚠  PyTorch not installed — cannot parse file yet.")
@@ -576,10 +618,30 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
                 return False
 
         elif page == PAGE_TIMEFRAME:
-            if self.spin_end_year.value() <= self.spin_start_year.value():
+            start = self.spin_start_year.value()
+            end = self.spin_end_year.value()
+            if end <= start:
                 QMessageBox.warning(self, "Invalid years",
                                     "End year must be greater than start year.")
                 return False
+            # For Train & Run: only block if there are FEWER years than timesteps.
+            # Having more years than timesteps is fine — the model uses a sliding
+            # window of size `timesteps` across all available years.
+            if self.radio_train_run.isChecked():
+                n_years = end - start   # number of input rasters
+                timesteps = self.spin_timesteps.value()
+                if n_years < timesteps:
+                    QMessageBox.warning(
+                        self,
+                        "Not enough years for Timesteps",
+                        f"You selected {n_years} historical year(s) "
+                        f"(Start={start} → End={end}),\n"
+                        f"but Timesteps is set to {timesteps}.\n\n"
+                        f"You need at least {timesteps} years of data "
+                        f"(i.e. End Year ≥ {start + timesteps}) "
+                        f"or reduce Timesteps to ≤ {n_years}.",
+                    )
+                    return False
 
         elif page == PAGE_OUTPUT:
             out_dir = self.dir_output.filePath()
@@ -637,7 +699,7 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
             return {"type": "nominatim", "bbox": r["_parsed_bbox"]}
         elif self.radio_bbox.isChecked():
             return {
-                "type":    "bbox",
+                "type": "bbox",
                 "lat_min": self.box_min_y.value(),
                 "lat_max": self.box_max_y.value(),
                 "lon_min": self.box_min_x.value(),
@@ -659,27 +721,26 @@ class population_modelDialog(QtWidgets.QDialog, FORM_CLASS):
         # Hyperparameters are read from the (possibly locked) spinboxes —
         # in Run Existing mode these were already filled from the checkpoint.
         cfg = {
-            "mode":       mode,
-            "roi":        self._build_roi(),
-            "out_dir":    self.dir_output.filePath(),
+            "mode": mode,
+            "roi": self._build_roi(),
+            "out_dir": self.dir_output.filePath(),
             "patch_size": self.spin_patch_size.value(),
-            "stride":     self.spin_stride.value(),
+            "stride": self.spin_stride.value(),
             "batch_size": self.spin_batch_size.value(),
-            "timesteps":  self.spin_timesteps.value(),
-            "epochs":     self.spin_epochs.value(),
+            "timesteps": self.spin_timesteps.value(),
+            "epochs": self.spin_epochs.value(),
+            # ── Time frame: shared by both flows ──────────────────────────
+            "start_year": self.spin_start_year.value(),
+            "end_year": self.spin_end_year.value(),
         }
 
         if mode == "run_existing":
             cfg["weights_path"] = self.file_weights.filePath()
             cfg["architecture"] = self._checkpoint["architecture"]
-            cfg["start_year"] = self.spin_start_year.value()
-            cfg["end_year"] = self.spin_end_year.value()
             # No model-selection combo in this flow; architecture comes from checkpoint
             cfg["model"] = cfg["architecture"]
         else:
             cfg["model"] = self.combo_model.currentText()
-            cfg["start_year"] = self.spin_start_year.value()
-            cfg["end_year"] = self.spin_end_year.value()
 
         return cfg
 

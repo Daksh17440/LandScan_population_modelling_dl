@@ -14,14 +14,14 @@
       0  – Mode selector          (shared entry point)
       1  – ROI                    (shared)
       2  – Model selection        (Train & Run only)
-      3  – Weights upload         (Run Existing only)  ← NEW dedicated page
+      3  – Weights upload         (Run Existing only)
       4  – Hyperparameters        (shared; auto-filled + locked in Run Existing)
       5  – Loss function          (Train & Run only)
-      6  – Time frame             (Run Existing only)  ← split out from old page 5
+      6  – Time frame             (shared)
       7  – Output directory       (shared)
 
     Run Existing flow : 0 → 1 → 3 → 4 → 6 → 7
-    Train & Run flow  : 0 → 1 → 2 → 4 → 5 → 7
+    Train & Run flow  : 0 → 1 → 2 → 4 → 5 → 6 → 7
   -->
 
   <widget class="QStackedWidget" name="stackedWidget">
@@ -55,7 +55,7 @@
      </widget>
      <widget class="QLabel" name="lbl_train_run_desc">
       <property name="geometry"><rect><x>42</x><y>105</y><width>371</width><height>16</height></rect></property>
-      <property name="text"><string>Steps: ROI → Model → Hyperparameters → Loss Function → Output</string></property>
+      <property name="text"><string>Steps: ROI → Model → Hyperparameters → Loss Function → Time Frame → Output</string></property>
       <property name="styleSheet"><string>color: gray; font-style: italic;</string></property>
      </widget>
     </widget>
@@ -243,7 +243,7 @@ Architecture and hyperparameters will be read automatically from the file.</stri
     </widget>
    </widget>
 
-   <!-- ═══ PAGE 6 – Time Frame (Run Existing only) ═════════════════════ -->
+   <!-- ═══ PAGE 6 – Time Frame (shared) ════════════════════════════════ -->
    <widget class="QWidget" name="page_timeframe">
     <widget class="QLabel" name="lbl_timeframe_step">
      <property name="geometry"><rect><x>10</x><y>0</y><width>421</width><height>16</height></rect></property>
@@ -275,8 +275,9 @@ Architecture and hyperparameters will be read automatically from the file.</stri
      </widget>
     </widget>
     <widget class="QLabel" name="lbl_timeframe_note">
-     <property name="geometry"><rect><x>10</x><y>140</y><width>421</width><height>32</height></rect></property>
-     <property name="text"><string>Note: the number of historical years used as model input must match the Timesteps value saved in the weights file.</string></property>
+     <property name="geometry"><rect><x>10</x><y>140</y><width>421</width><height>48</height></rect></property>
+     <property name="text"><string>Note: the number of historical years (End Year − Start Year) used as model input must match the Timesteps hyperparameter.
+For Run Existing mode: this value is fixed by the loaded weights file.</string></property>
      <property name="wordWrap"><bool>true</bool></property>
      <property name="styleSheet"><string>color: gray; font-style: italic;</string></property>
     </widget>

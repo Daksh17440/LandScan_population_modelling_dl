@@ -6,7 +6,7 @@
 name=LandScan Population Modelling
 qgisMinimumVersion=3.0
 description=The plugin offers diverse options of loss function and deep learning models to be applied on LandScan population rasters of custom AOI and time frame.
-version=0.1
+version=1.0
 author=Daksh17440
 email=draciel.mart007@gmail.com
 
@@ -23,9 +23,9 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python
+tags=population, landscan, population modelling, deep learning, python
 
-homepage=https://github.com/Daksh17440
+homepage=https://github.com/Daksh17440/LandScan_population_modelling_dl
 category=Plugins
 icon=icon.svg
 # experimental flag
@@ -37,7 +37,7 @@ deprecated=False
 # Since QGIS 3.8, a comma separated list of plugins to be installed
 # (or upgraded) can be specified.
 # Check the documentation for more information.
-# plugin_dependencies=
+# plugin_dependencies= numpy, pandas, requests
 
 Category of the plugin: Raster, Vector, Database or Web
 # category=
